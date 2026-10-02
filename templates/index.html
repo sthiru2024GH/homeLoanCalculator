@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMI Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        h2 { text-align: center; margin-bottom: 20px; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0052cc; }
+        .summary-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+        .stat label { font-size: 13px; color: #666; }
+        .stat div { font-size: 18px; font-weight: bold; }
+        .stat.emi div { color: #0066ff; font-size: 22px; }
+        .stat.interest div { color: #d9534f; }
+        .chart-container {
+            width: 250px;
+            margin: 20px auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background-color: #f1f3f5; text-align: right; }
+        th:first-child, td:first-child { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>EMI Calculator</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label for="amount">Loan Amount (₹)</label>
+                <input type="number" step="any" id="amount" name="amount" value="{{ form.amount }}" required>
+            </div>
+            <div class="form-group">
+                <label for="rate">Interest Rate (% p.a.)</label>
+                <input type="number" step="any" id="rate" name="rate" value="{{ form.rate }}" required>
+            </div>
+            <div class="form-group">
+                <label for="tenure">Loan Tenure (Months)</label>
+                <input type="number" id="tenure" name="tenure" value="{{ form.tenure }}" required>
+            </div>
+            <button type="submit">Calculate EMI</button>
+        </form>
+    </div>
+
+    {% if result %}
+    <div class="card">
+        <div class="summary-box">
+            <div class="stat emi">
+                <label>Monthly EMI</label>
+                <div>₹ {{ "{:,.2f}".format(result.emi) }}</div>
+            </div>
+            <div class="stat">
+                <label>Loan Amount</label>
+                <div>₹ {{ "{:,.2f}".format(result.total_principal) }}</div>
+            </div>
+            <div class="stat interest">
+                <label>Total Interest</label>
+                <div>₹ {{ "{:,.2f}".format(result.total_interest) }}</div>
+            </div>
+            <div class="stat">
+                <label>Total Payment</label>
+                <div>₹ {{ "{:,.2f}".format(result.total_payment) }}</div>
+            </div>
+        </div>
+
+        <h3 style="text-align: center; margin-top: 30px;">Breakdown: Principal vs Interest</h3>
+        <div class="chart-container">
+            <canvas id="emiChart"></canvas>
+        </div>
+
+        <h3>Repayment Schedule</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>EMI (₹)</th>
+                        <th>Principal (₹)</th>
+                        <th>Interest (₹)</th>
+                        <th>Balance (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result.schedule %}
+                    <tr>
+                        <td>{{ row.month }}</td>
+                        <td>{{ "{:,.2f}".format(row.emi) }}</td>
+                        <td>{{ "{:,.2f}".format(row.principal) }}</td>
+                        <td>{{ "{:,.2f}".format(row.interest) }}</td>
+                        <td>{{ "{:,.2f}".format(row.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('emiChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Principal', 'Interest'],
+                datasets: [{
+                    data: [{{ result.total_principal }}, {{ result.total_interest }}],
+                    backgroundColor: ['#0066ff', '#dc3545']
+                }]
+            }
+        });
+    </script>
+    {% endif %}
+</div>
+
+</body>
+</html>
